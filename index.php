@@ -60,7 +60,7 @@ map.on('click', function(e) {
 });
 
 
-const Library = L.polygon([[11.051449926960808, 124.38671031683248],
+const libRary = L.polygon([[11.051449926960808, 124.38671031683248],
                           [11.051619063019347, 124.38674250333735],
                           [11.051576285426206, 124.38703352298552],
                           [11.051434132148811, 124.38699999537627],  ///Adding a polygon building
@@ -84,7 +84,7 @@ CGSBldg.on('click', function(){
   CGSBldg.bindPopup("This is College of Graduate Studies");
 });
 
-const HighschoolBldg = L.polygon([
+const highSchoolBldg = L.polygon([
 [11.051392213115161, 124.38611041056501],
 [11.051312522286056, 124.38648932779691],
 [11.051219549624744, 124.38646339001019],
@@ -92,34 +92,34 @@ const HighschoolBldg = L.polygon([
 ]).addTo(map);
 
 
-HighschoolBldg.on('click', function(){
-  HighschoolBldg.bindPopup("This is High School Bldg");
+highSchoolBldg.on('click', function(){
+  highSchoolBldg.bindPopup("This is High School Bldg");
 });
 
-const ICTBuilding =L.polygon([
+const ictBuilding =L.polygon([
 [11.05256060, 124.38676983],
 [11.05268696, 124.38679934],
 [11.05275803, 124.38642114],
 [11.05263167, 124.38640237],
 ]).addTo(map);
 
-ICTBuilding.on('click', function(){
-  ICTBuilding.bindPopup("This is ICT Building");
+ictBuilding.on('click', function(){
+  ictBuilding.bindPopup("This is ICT Building");
 });
 
-const COTEBuilding =L.polygon([
+const coteBuilding =L.polygon([
  [11.05273434, 124.38683152],
  [11.05347932, 124.38695759],
  [11.05357146, 124.38660622],
  [11.05279752, 124.38645065],
 ]).addTo(map);
 
-COTEBuilding.on('click', function(){
-  COTEBuilding.bindPopup("This is COTE Building");
+coteBuilding.on('click', function(){
+  coteBuilding.bindPopup("This is COTE Building");
 });
 
 
-const COGBuilding =L.polygon([
+const cogBuilding =L.polygon([
  [11.05178665, 124.38704610],
  [11.05171821, 124.38740283],
  [11.05145233, 124.38734919],
@@ -128,13 +128,13 @@ const COGBuilding =L.polygon([
  [11.05164450, 124.38701123],
 ]).addTo(map);
 
-COGBuilding.on('click', function(){
-  COGBuilding.bindPopup("Maritime Engineering");
+cogBuilding.on('click', function(){
+  cogBuilding.bindPopup("Maritime Engineering");
 });
 
 
 
-const Construction =L.polygon([
+const consTruction =L.polygon([
  [11.05185773, 124.38652307],
  [11.05184457, 124.38659281],
  [11.05151551, 124.38654721],
@@ -143,11 +143,11 @@ const Construction =L.polygon([
  [11.05163134, 124.38645601],
 ]).addTo(map);
 
-Construction.on('click', function(){
-  Construction.bindPopup("Under construction!");
+consTruction.on('click', function(){
+  consTruction.bindPopup("Under construction!");
 });
 
-const GuidanceOffice =L.polygon([
+const guidanceOffice =L.polygon([
  [11.05237896, 124.38637823],
  [11.05229472, 124.38636214],
 [11.05225786, 124.38658744],
@@ -155,13 +155,13 @@ const GuidanceOffice =L.polygon([
  [11.05241318, 124.38639164],
 ]).addTo(map);
 
-GuidanceOffice.on('click', function(){
-  GuidanceOffice.bindPopup("This is the Guidance Office");
+guidanceOffice.on('click', function(){
+  guidanceOffice.bindPopup("This is the Guidance Office");
 });
 
 
 
-const CASBuilding =L.polygon([
+const casBuilding =L.polygon([
  [11.05243424, 124.38686371],
  [11.05197093, 124.38678861],
  [11.05174980, 124.38746721],
@@ -169,11 +169,11 @@ const CASBuilding =L.polygon([
  [11.05244214, 124.38686907],
 ]).addTo(map);
 
-CASBuilding.on('click', function(){
-  CASBuilding.bindPopup("This is the CAS Building");
+casBuilding.on('click', function(){
+  casBuilding.bindPopup("This is the CAS Building");
 });
 
-const Miniforest =L.polygon([
+const miniForest =L.polygon([
 [11.05223417, 124.38784003],
  [11.05217099, 124.38801169],
  [11.05184457, 124.38787222],
@@ -187,70 +187,70 @@ const Miniforest =L.polygon([
  [11.05191828, 124.38767910],
 ]).addTo(map);
 
-Miniforest.on('click', function(){
-  Miniforest.bindPopup("Mini Forest");
+miniForest.on('click', function(){
+  miniForest.bindPopup("Mini Forest");
 });
 
 
-const Oval =L.polygon([
+const oVal =L.polygon([
 [11.05418745, 124.38739479],
  [11.05410321, 124.38789904],
  [11.05277119, 124.38760936],
  [11.05292914, 124.38703001],
 ]).addTo(map);
 
-Oval.on('click', function(){
-  Oval.bindPopup("Oval Field");
+oVal.on('click', function(){
+  oVal.bindPopup("Oval Field");
 });
 
-const BahayAlumnai =L.polygon([
+const bahayAlumnai =L.polygon([
  [11.05200515, 124.38626289],
  [11.05180508, 124.38620389],
  [11.05175770, 124.38643187],
  [11.05196303, 124.38648552],
 ]).addTo(map);
 
-BahayAlumnai.on('click', function(){
-  BahayAlumnai.bindPopup("Bahay Alumnai");
+bahayAlumnai.on('click', function(){
+  bahayAlumnai.bindPopup("Bahay Alumnai");
 });
 
 
-const CTEBuilding =L.polygon([
+const cteBuilding =L.polygon([
 [11.05267116, 124.38695490],
  [11.05260798, 124.38726872],
  [11.05247373, 124.38725799],
  [11.05254744, 124.38693881],
 ]).addTo(map);
 
-CTEBuilding.on('click', function(){
-  CTEBuilding.bindPopup("CTE Building");
+cteBuilding.on('click', function(){
+  cteBuilding.bindPopup("CTE Building");
 });
 
 
-const BasketballCourt =L.polygon([
+const basketballCourt =L.polygon([
  [11.05399792, 124.38697904],
  [11.05396896, 124.38710511],
  [11.05375310, 124.38704342],
  [11.05376363, 124.38694149],
 ]).addTo(map);
 
-BasketballCourt.on('click', function(){
-  BasketballCourt.bindPopup("Basketball Court");
+basketballCourt.on('click', function(){
+  basketballCourt.bindPopup("Basketball Court");
 });
 
-const VolleyBallCourt =L.polygon([
+const volleyBallCourt =L.polygon([
  [11.05409268, 124.38657939],
  [11.05404004, 124.38687444],
  [11.05376889, 124.38681543],
  [11.05381891, 124.38653648],
 ]).addTo(map);
 
-VolleyBallCourt.on('click', function(){
-  VolleyBallCourt.bindPopup("VolleyBall Court");
+volleyBallCourt.on('click', function(){
+  volleyBallCourt.bindPopup("VolleyBall Court");
 });
 
 
-const Gymnasium =L.polygon([
+const gymNasium =L.polygon([
 [11.05131018, 124.38664109],
  [11.05114433, 124.38764960],
  [11.05100744, 124.38762814],
@@ -268,11 +268,11 @@ const Gymnasium =L.polygon([
  [11.05131544, 124.38664645],
 ]).addTo(map);
 
-Gymnasium.on('click', function(){
-  Gymnasium.bindPopup(" PIT Gymnasium");
+gymNasium.on('click', function(){
+  gymNasium.bindPopup(" PIT Gymnasium");
 });
 
-const Highvbuilding =L.polygon([
+const highbuilding =L.polygon([
 [11.05108642, 124.38656330],
  [11.05093110, 124.38657939],
  [11.05091794, 124.38648015],
@@ -281,8 +281,8 @@ const Highvbuilding =L.polygon([
  [11.05101797, 124.38601613],
 ]).addTo(map);
 
-Highvbuilding.on('click', function(){
-  Highvbuilding.bindPopup("Highschool building");
+highbuilding.on('click', function(){
+  highbuilding.bindPopup("Highschool building");
 });
 
 
