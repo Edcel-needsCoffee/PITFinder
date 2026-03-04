@@ -41,6 +41,6 @@ while($building = $result -> fetch_assoc()){
             'floor' => $room['floor']
         ]
     }
-}
+}gggge
 
 ?>
