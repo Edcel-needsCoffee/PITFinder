@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
-
+    <script src="js/apiScripting.js"></script>
      <style>
        #map {
          height : 100vh;
@@ -32,7 +32,7 @@
 
    <div class="head"> PIT Navigation System </div>
   <div class="map" id="map"></div> 
-
+ 
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -42,21 +42,11 @@
 
      
 <script>
-
-   console.log('HEllo');
-
-
-
-
-
-
-
       var map = L.map('map').setView([11.051987434086843, 124.38721536092984], 18);
      
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors & CARTO'
+}).addTo(map);
 
 
       
@@ -236,27 +226,27 @@ cteBuilding.on('click', function(){
 });
 
 
-const basketballCourt =L.polygon([
+/*const basketballCourt =L.polygon([
  [11.05399792, 124.38697904],
  [11.05396896, 124.38710511],
  [11.05375310, 124.38704342],
  [11.05376363, 124.38694149],
-]).addTo(map);
+]).addTo(map); 
 
 basketballCourt.on('click', function(){
   basketballCourt.bindPopup("Basketball Court");
-});
+}); */
 
-const volleyBallCourt =L.polygon([
+/*const volleyBallCourt =L.polygon([
  [11.05409268, 124.38657939],
  [11.05404004, 124.38687444],
  [11.05376889, 124.38681543],
  [11.05381891, 124.38653648],
-]).addTo(map);
+]).addTo(map); *?
 
-volleyBallCourt.on('click', function(){
+/*volleyBallCourt.on('click', function(){
   volleyBallCourt.bindPopup("VolleyBall Court");
-});
+});*/
 
 
 const gymNasium =L.polygon([
