@@ -17,6 +17,7 @@
 <body>
   
   <div class="map" id="map"></div> 
+  
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -26,6 +27,15 @@
 
      
 <script>
+
+   console.log('HEllo');
+
+
+
+
+
+
+
       var map = L.map('map').setView([11.051987434086843, 124.38721536092984], 18);
      
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
