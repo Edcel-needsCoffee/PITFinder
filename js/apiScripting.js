@@ -11,16 +11,12 @@ fetch(apiUrl)
   .then(data => {
         data.forEach(building => {
         const polygon = L.polygon(building.polygon, {
-          color: 'blue',
+          color: 'green',
           fillColor : 'green',
           fillOpacity : 1
         }).addTo(map);
 
         polygon.bindPopup(building.buildingName);
-
-        
-
-
   })
   })
   .catch(error => {

@@ -1,0 +1,25 @@
+{
+  "name": "navmap",
+  "version": "1.0.0",
+  "description": "A campus navigation map for PIT",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Edcel-needsCoffee/PITFinder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Edcel-needsCoffee/PITFinder/issues"
+  },
+  "homepage": "https://github.com/Edcel-needsCoffee/PITFinder#readme",
+  "dependencies": {
+    "ws": "^8.19.0"
+  }
+}

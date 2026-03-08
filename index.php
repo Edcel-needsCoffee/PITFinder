@@ -44,10 +44,9 @@
 <script>
       var map = L.map('map').setView([11.051987434086843, 124.38721536092984], 18);
      
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap contributors & CARTO'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: 'Map data © OpenStreetMap contributors'
 }).addTo(map);
-
 
       
 // Click anywhere on the map → print exact coordinates to console
