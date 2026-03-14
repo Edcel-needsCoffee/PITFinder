@@ -51,6 +51,7 @@ while($buildingTemp = $result->fetch_assoc()){
          'buildingId' => $buildingId,
          'buildingName' => $buildingTemp['name'],
          'polygon' => $polygon,
+          'description'=>$buildingTemp['description'] ?? null,
          'room' => $room
    ];
    }
