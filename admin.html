@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIT Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green:      #17b890;
+      --green-dark: #0f8a6a;
+      --green-light:#e6f7f3;
+      --bg:         #f4f6f4;
+      --surface:    #ffffff;
+      --border:     #e4e8e4;
+      --text:       #1a1f1a;
+      --muted:      #6b7a6b;
+      --add:        #1a7a4a;
+      --add-bg:     #d4f0e0;
+      --del:        #b91c1c;
+      --del-bg:     #fde8e8;
+      --upd:        #92610a;
+      --upd-bg:     #fef3cd;
+      --log:        #1e4a8a;
+      --log-bg:     #ddeaf9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ─────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--green);
+    }
+
+    .login-wrap {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 44px 40px;
+      width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .login-wrap .logo {
+      width: 44px; height: 44px;
+      background: var(--green);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .login-wrap .logo svg { width: 24px; height: 24px; fill: white; }
+
+    .login-wrap h1 {
+      font-size: 1.5rem; font-weight: 600;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .login-wrap p {
+      font-size: 0.875rem; color: var(--muted); margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 0.8rem;
+      font-weight: 500; color: var(--muted);
+      margin-bottom: 6px; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .field input {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 0.95rem;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text); background: var(--bg);
+      transition: border-color 0.2s;
+    }
+    .field input:focus {
+      outline: none; border-color: var(--green);
+      background: white;
+    }
+
+    .btn-login {
+      width: 100%; padding: 11px;
+      background: var(--green); color: white;
+      border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; margin-top: 6px;
+      transition: background 0.2s;
+    }
+    .btn-login:hover { background: var(--green-dark); }
+
+    #login-error {
+      display: none; margin-top: 12px;
+      padding: 10px 14px; background: var(--del-bg);
+      color: var(--del); border-radius: 8px;
+      font-size: 0.85rem; text-align: center;
+    }
+
+    /* ── DASHBOARD ─────────────────────────────── */
+    #dashboard { display: none; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 58px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px;
+      background: var(--green); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-logo svg { width: 18px; height: 18px; fill: white; }
+    .topbar-left h1 {
+      font-size: 1rem; font-weight: 600; color: var(--text);
+    }
+
+    .topbar-right {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .live-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 1.4s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    .admin-badge {
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .admin-badge strong { color: var(--text); }
+
+    /* ADDED: back to map button */
+    .btn-back {
+      padding: 6px 14px;
+      border: 1.5px solid #b2dfd3;
+      border-radius: 7px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      font-size: 0.82rem;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .btn-back:hover {
+      background: #c8ede4;
+      border-color: var(--green);
+    }
+
+    .btn-logout {
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px; background: transparent;
+      font-size: 0.82rem; font-family: 'DM Sans', sans-serif;
+      color: var(--muted); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-logout:hover {
+      border-color: var(--del); color: var(--del);
+    }
+
+    /* ── CONTENT ───────────────────────────────── */
+    .content { padding: 24px 28px; max-width: 1300px; margin: 0 auto; }
+
+    /* stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: transform 0.2s;
+    }
+    .stat:hover { transform: translateY(-2px); }
+
+    .stat-label {
+      font-size: 0.75rem; font-weight: 500;
+      color: var(--muted); letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 2rem; font-weight: 600;
+      color: var(--text); line-height: 1;
+      font-family: 'DM Mono', monospace;
+      transition: color 0.3s;
+    }
+    .stat-value.pop { color: var(--green); }
+    .stat-sub {
+      font-size: 0.75rem; color: var(--muted); margin-top: 5px;
+    }
+    .stat.accent { border-left: 3px solid var(--green); }
+    .stat.warn   { border-left: 3px solid #e67e22; }
+    .stat.danger { border-left: 3px solid var(--del); }
+    .stat.info   { border-left: 3px solid #2980b9; }
+
+    /* two column */
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      transition: background 0.4s;
+    }
+    .panel-head.flash { background: var(--green-light); }
+    .panel-head h3 {
+      font-size: 0.875rem; font-weight: 600; color: var(--text);
+    }
+    .panel-head span {
+      font-size: 0.75rem; color: var(--muted);
+    }
+
+    .panel-body { max-height: 420px; overflow-y: auto; }
+
+    /* audit log rows */
+    .log-row {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 12px; align-items: flex-start;
+      animation: slideIn 0.25s ease;
+    }
+    .log-row:last-child { border-bottom: none; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge {
+      font-size: 0.68rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px;
+      white-space: nowrap; margin-top: 2px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+    .badge-ADD    { background: var(--add-bg);  color: var(--add); }
+    .badge-DELETE { background: var(--del-bg);  color: var(--del); }
+    .badge-UPDATE { background: var(--upd-bg);  color: var(--upd); }
+    .badge-LOGIN  { background: var(--log-bg);  color: var(--log); }
+
+    .log-detail { font-size: 0.855rem; color: var(--text); line-height: 1.45; }
+    .log-meta   { font-size: 0.76rem;  color: var(--muted); margin-top: 2px; }
+    .log-meta strong { color: var(--text); font-weight: 500; }
+
+    /* buildings list */
+    .brow {
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .brow:last-child { border-bottom: none; }
+    .brow-name { font-size: 0.875rem; font-weight: 500; color: var(--text); }
+    .brow-date { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .room-pill {
+      font-size: 0.75rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      font-family: 'DM Mono', monospace;
+      background: var(--green-light); color: var(--green-dark);
+    }
+    .room-pill.zero { background: var(--del-bg); color: var(--del); }
+
+    .empty {
+      padding: 40px 20px; text-align: center;
+      font-size: 0.875rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+    </div>
+    <h1>PIT Admin</h1>
+    <p>Sign in to manage buildings and view audit logs</p>
+
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" />
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign in</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div id="dashboard">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+      </div>
+      <h1>PIT Admin</h1>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><div class="live-dot"></div> Live</div>
+      <span class="admin-badge">Signed in as <strong id="admin-name-display">—</strong></span>
+      <!-- ADDED: back to map -->
+      <a href="index.php" class="btn-back">← Back to Map</a>
+      <button class="btn-logout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat accent">
+        <div class="stat-label">Buildings</div>
+        <div class="stat-value" id="stat-buildings">—</div>
+        <div class="stat-sub">on the map</div>
+      </div>
+      <div class="stat info">
+        <div class="stat-label">Rooms</div>
+        <div class="stat-value" id="stat-rooms">—</div>
+        <div class="stat-sub">total across all</div>
+      </div>
+      <div class="stat warn">
+        <div class="stat-label">No rooms yet</div>
+        <div class="stat-value" id="stat-norooms">—</div>
+        <div class="stat-sub">buildings empty</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Announcements</div>
+        <div class="stat-value" id="stat-announcements">—</div>
+        <div class="stat-sub">total posted</div>
+      </div>
+      <div class="stat danger">
+        <div class="stat-label">Actions today</div>
+        <div class="stat-value" id="stat-actions">—</div>
+        <div class="stat-sub">by all admins</div>
+      </div>
+      <div class="stat info">
+        <div class="stat-label">Last action by</div>
+        <div class="stat-value" style="font-size:1rem; padding-top:4px;" id="stat-last-who">—</div>
+        <div class="stat-sub" id="stat-last">—</div>
+      </div>
+    </div>
+
+    <!-- Two columns -->
+    <div class="cols">
+
+      <!-- Audit log -->
+      <div class="panel">
+        <div class="panel-head" id="log-head">
+          <h3>Audit log</h3>
+          <span>who did what &amp; when</span>
+        </div>
+        <div class="panel-body" id="activity-log">
+          <div class="empty">No activity yet.</div>
+        </div>
+      </div>
+
+      <!-- Buildings overview -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Buildings</h3>
+          <span id="bcount-label"></span>
+        </div>
+        <div class="panel-body" id="buildings-list">
+          <div class="empty">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const socket     = new WebSocket('ws://localhost:8080');
+  let sessionToken = localStorage.getItem('adminToken');
+  let isConnected  = false;
+
+  socket.onopen = () => {
+    isConnected = true;
+    if (sessionToken) {
+      showDashboard(localStorage.getItem('adminName'));
+      socket.send(JSON.stringify({ action: 'getDashboard', token: sessionToken }));
+    }
+  };
+
+  socket.onerror = () => showError('Cannot connect to server. Is it running?');
+  socket.onclose = () => { isConnected = false; };
+
+  socket.onmessage = (event) => {
+    let msg;
+    try { msg = JSON.parse(event.data); } catch(e) { return; }
+
+    if (msg.type === 'loginSuccess') {
+      localStorage.setItem('adminToken', msg.token);
+      localStorage.setItem('adminName',  msg.fullName);
+      sessionToken = msg.token;
+      showDashboard(msg.fullName);
+      socket.send(JSON.stringify({ action: 'getDashboard', token: msg.token }));
+    }
+
+    if (msg.type === 'loginFailed')  showError('Invalid username or password.');
+    if (msg.type === 'authError')    doLogout();
+
+    if (msg.type === 'dashboardData' || msg.type === 'activityUpdate') {
+      renderStats(msg.stats);
+      renderLog(msg.logs);
+      renderBuildings(msg.buildings);
+      if (msg.type === 'activityUpdate') flashLogHead();
+    }
+  };
+
+  // ── Auth ──
+  function doLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    if (!isConnected) { showError('Not connected to server.'); return; }
+    if (!u || !p)     { showError('Enter username and password.'); return; }
+    document.getElementById('login-error').style.display = 'none';
+    socket.send(JSON.stringify({ action: 'adminLogin', username: u, password: p }));
+  }
+
+  function doLogout() {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminName');
+    sessionToken = null;
+    document.getElementById('dashboard').style.display    = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+  }
+
+  function showDashboard(name) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display    = 'block';
+    document.getElementById('admin-name-display').textContent = name || 'Admin';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent   = msg;
+    el.style.display = 'block';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' &&
+        document.getElementById('login-screen').style.display !== 'none') doLogin();
+  });
+
+  // ── Render ──
+  function renderStats(s) {
+    if (!s) return;
+    set('stat-buildings',     s.totalBuildings);
+    set('stat-rooms',         s.totalRooms);
+    set('stat-norooms',       s.buildingsNoRooms);
+    set('stat-announcements', s.totalAnnouncements);
+    set('stat-actions',       s.actionsToday);
+    set('stat-last-who',      s.lastActionBy || '—');
+    set('stat-last',          s.lastAction   || '—');
+    document.querySelectorAll('.stat-value').forEach(el => {
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 500);
+    });
+  }
+
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val ?? '—';
+  }
+
+  function renderLog(logs) {
+    const el = document.getElementById('activity-log');
+    if (!logs || !logs.length) {
+      el.innerHTML = '<div class="empty">No activity yet.</div>'; return;
+    }
+    el.innerHTML = logs.map(l => `
+      <div class="log-row">
+        <span class="badge badge-${l.action}">${l.action}</span>
+        <div>
+          <div class="log-detail">${l.details}</div>
+          <div class="log-meta">
+            <strong>${l.admin_name}</strong>
+            &nbsp;·&nbsp; ${fmt(l.performed_at)}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderBuildings(buildings) {
+    const el = document.getElementById('buildings-list');
+    set('bcount-label', buildings ? `${buildings.length} total` : '');
+    if (!buildings || !buildings.length) {
+      el.innerHTML = '<div class="empty">No buildings yet.</div>'; return;
+    }
+    el.innerHTML = buildings.map(b => `
+      <div class="brow">
+        <div>
+          <div class="brow-name">${b.name}</div>
+          <div class="brow-date">Added ${fmt(b.date_created)}</div>
+        </div>
+        <span class="room-pill ${b.room_count == 0 ? 'zero' : ''}">
+          ${b.room_count} room${b.room_count != 1 ? 's' : ''}
+        </span>
+      </div>`).join('');
+  }
+
+  function flashLogHead() {
+    const el = document.getElementById('log-head');
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 700);
+  }
+
+  function fmt(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('en-PH', {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+</script>
+
+</body>
+</html>
