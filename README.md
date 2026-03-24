@@ -79,8 +79,8 @@ Once running, open your browser:
 
 | URL | Description |
 |---|---|
-| `http://localhost:3000/index.html` | Map navigation page |
-| `http://localhost:3000/admin.html` | Admin dashboard |
+| `http://localhost:8080/index.html` | Map navigation page |
+| `http://localhost:8080/admin.html` | Admin dashboard |
 | `http://localhost:8081` | phpMyAdmin (DB manager) |
 
 To stop:
@@ -143,16 +143,15 @@ The server polls the database every **3 seconds**. Any change made — whether t
 
 ---
 
-## CI/CD Pipeline
+## CI Pipeline
 
-This project uses **GitHub Actions** for continuous integration. On every push to `main`, the pipeline automatically:
+This project uses GitHub Actions for continuous integration.
 
-1. Installs Node.js dependencies
-2. Checks `webSocketServer.js` for syntax errors
-3. Builds the Docker image
-4. Verifies the container starts correctly
-
-See `.github/workflows/ci.yml` for the full pipeline configuration.
+On every push or pull request, the pipeline automatically:
+- installs Node.js dependencies
+- checks `webSocketServer.js` for syntax errors
+- builds Docker containers
+- starts the services to verify that the system runs correctly
 
 ---
 
