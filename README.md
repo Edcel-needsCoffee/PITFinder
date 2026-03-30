@@ -157,6 +157,6 @@ On every push or pull request, the pipeline automatically:
 
 ## Contributors
 
-- Developed by: `[Your Name]`
+- Developed by: The Finders
 - Institution: Palompon Institute of Technology
-- Course: `[Your Course]`
+- Course: BSIT 2-A
