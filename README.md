@@ -1,6 +1,3 @@
-# PITFinder
-A campus navigation map for PIT 
-
 
 # PIT Navigation System
 
