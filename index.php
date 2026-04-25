@@ -125,6 +125,15 @@
 
   <div id="side-panel">
     <div class="panel-header"><h2>BUILDING INFO</h2></div>
+    <!-- searchbar  -->
+    <input 
+    type="text" 
+    id="searchInput" 
+    placeholder="Search building..." 
+    onkeyup="searchBuilding()"
+    style="margin-top:10px; padding:8px; width:100%; border-radius:6px; border:1px solid #ccc;"
+  >
+
     <div id="building-info">
       <p style="text-align:center; padding:40px 20px; color:#555; font-size:1.1em;">
         Loading buildings...<br>Please wait a moment.
@@ -291,6 +300,61 @@
       html += '</ul>';
       infoDiv.innerHTML = html;
     }
+
+
+    //searchbar logic
+  function searchBuilding() {
+    const inputEl = document.getElementById("searchInput");
+    if (!inputEl) return;
+
+    const input = inputEl.value.toLowerCase();
+
+    const filtered = allBuildings.filter(function(b) {
+
+      // 🔹 check building name
+      const buildingMatch = b.name.toLowerCase().includes(input);
+
+      // 🔹 check rooms (if exist)
+      const roomMatch = (b.room || []).some(function(r) {
+        return (
+          r.name?.toLowerCase().includes(input) ||
+          r.details?.toLowerCase().includes(input)
+        );
+      });
+
+      return buildingMatch || roomMatch;
+    });
+
+  displayFilteredBuildings(filtered);
+}
+
+//filter logic
+function displayFilteredBuildings(buildings) {
+  const infoDiv = document.getElementById('building-info');
+  let html = '<h3>Search Results</h3><ul>';
+
+
+  Object.values(buildingLayers).forEach(poly => {
+    poly.setStyle({ fillColor: '#4caf50', weight: 2 });
+  });
+
+  buildings.forEach(building => {
+    if (!building.polygon || building.polygon.length < 3) return;
+
+    html += `
+      <li onclick="selectBuilding(${building.id})">
+        <strong>${building.name}</strong><br>
+        <small>${building.room?.length || 0} rooms</small>
+      </li>`;
+  });
+
+  if (buildings.length === 0) {
+    html += `<p style="color:red; text-align:center;">No results found</p>`;
+  }
+
+  html += '</ul>';
+  infoDiv.innerHTML = html;
+}
   </script>
 
 </body>
