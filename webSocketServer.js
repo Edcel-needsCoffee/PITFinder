@@ -21,7 +21,7 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// ── EXISTING: fetch all buildings (untouched) ─────────────────────
+// ── fetch all buildings ──────────────────────────────────────────
 async function fetchAllBuildings() {
   const [buildings] = await pool.query('SELECT * FROM buildings');
 
@@ -46,16 +46,47 @@ async function fetchAllBuildings() {
   return enriched;
 }
 
-// ── EXISTING: broadcast to all clients (untouched) ────────────────
-function broadcast(data) {
+// ── broadcast to all clients (for buildings) ─────────────────────
+function broadcastBuildings(buildings, diff = null) {
+  const message = {
+    type: 'initialData',
+    data: buildings
+  };
+  if (diff) {
+    message.changes = {
+      added: diff.added.map(b => ({ id: b.id, name: b.name })),
+      deleted: diff.deleted.map(b => ({ id: b.id, name: b.name })),
+      updated: diff.updated.map(({ building, changes }) => ({
+        id: building.id,
+        name: building.name,
+        changes
+      }))
+    };
+  }
+  
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
+      client.send(JSON.stringify(message));
     }
   });
 }
 
-// ── NEW: broadcast only to logged-in admin clients ────────────────
+// ── broadcast announcements to all clients ────────────────────────
+async function broadcastAnnouncements() {
+  const announcements = await fetchAllAnnouncements();
+  const message = {
+    type: 'announcementsData',
+    data: announcements
+  };
+  
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(message));
+    }
+  });
+}
+
+// ── broadcast to admins only ─────────────────────────────────────
 function broadcastToAdmins(data) {
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN && client.adminId) {
@@ -64,7 +95,7 @@ function broadcastToAdmins(data) {
   });
 }
 
-// ── EXISTING: diff checker (untouched) ───────────────────────────
+// ── diff checker ─────────────────────────────────────────────────
 function diffBuildings(oldList, newList) {
   const oldMap = {};
   const newMap = {};
@@ -127,7 +158,7 @@ function diffBuildings(oldList, newList) {
   return { added, deleted, updated };
 }
 
-// ── EXISTING: console log with colors (untouched) ────────────────
+// ── console log with colors ──────────────────────────────────────
 function logChanges(diff) {
   const time = new Date().toLocaleTimeString();
 
@@ -147,7 +178,7 @@ function logChanges(diff) {
   });
 }
 
-// ── NEW: write to activity_logs table ────────────────────────────
+// ── write to activity_logs table ─────────────────────────────────
 async function logActivity(adminId, action, targetTable, targetId, details) {
   try {
     await pool.query(
@@ -164,7 +195,7 @@ async function logActivity(adminId, action, targetTable, targetId, details) {
   }
 }
 
-// ── NEW: fetch dashboard data ─────────────────────────────────────
+// ── fetch dashboard data ─────────────────────────────────────────
 async function fetchDashboardStats() {
   const [[{ totalBuildings }]]     = await pool.query('SELECT COUNT(*) AS totalBuildings FROM buildings');
   const [[{ totalRooms }]]         = await pool.query('SELECT COUNT(*) AS totalRooms FROM rooms');
@@ -207,7 +238,53 @@ async function fetchBuildingsOverview() {
   return rows;
 }
 
-// ── NEW: push fresh dashboard to all admin clients ────────────────
+// ── fetch announcements ──────────────────────────────────────────
+async function fetchAllAnnouncements() {
+  const [rows] = await pool.query(
+    'SELECT * FROM announcements ORDER BY created_at DESC'
+  );
+  return rows;
+}
+
+// ── create announcement ──────────────────────────────────────────
+async function createAnnouncement(adminId, title, message) {
+  const [result] = await pool.query(
+    'INSERT INTO announcements (admin_id, title, message, created_at) VALUES (?, ?, ?, NOW())',
+    [adminId, title, message]
+  );
+  await logActivity(adminId, 'ADD', 'announcements', result.insertId,
+    `Added announcement: "${title}"`);
+  return result.insertId;
+}
+
+// ── delete announcement ──────────────────────────────────────────
+async function deleteAnnouncement(adminId, announcementId) {
+  const [[ann]] = await pool.query('SELECT title FROM announcements WHERE id = ?', [announcementId]);
+  if (ann) {
+    await pool.query('DELETE FROM announcements WHERE id = ?', [announcementId]);
+    await logActivity(adminId, 'DELETE', 'announcements', announcementId,
+      `Deleted announcement: "${ann.title}"`);
+    return true;
+  }
+  return false;
+}
+
+// ── update announcement ──────────────────────────────────────────
+async function updateAnnouncement(adminId, announcementId, title, message) {
+  const [[old]] = await pool.query('SELECT title FROM announcements WHERE id = ?', [announcementId]);
+  if (old) {
+    await pool.query(
+      'UPDATE announcements SET title = ?, message = ? WHERE id = ?',
+      [title, message, announcementId]
+    );
+    await logActivity(adminId, 'UPDATE', 'announcements', announcementId,
+      `Updated announcement: "${old.title}" → "${title}"`);
+    return true;
+  }
+  return false;
+}
+
+// ── push fresh dashboard to all admin clients ────────────────────
 async function pushAdminUpdate() {
   try {
     const [stats, logs, buildings] = await Promise.all([
@@ -232,15 +309,12 @@ async function pushAdminUpdate() {
   }
 }
 
-// ── Single unified poll — buildings diff + audit log count ───────
-// Runs every 3s. Pushes admin dashboard whenever EITHER buildings
-// OR activity_logs changes — no race condition between two intervals.
+// ── Single unified poll ──────────────────────────────────────────
 let lastBuildings = [];
 let lastLogCount  = 0;
 
 setInterval(async () => {
   try {
-    // Run both checks in parallel
     const [buildings, [logRows]] = await Promise.all([
       fetchAllBuildings(),
       pool.query('SELECT COUNT(*) AS cnt FROM activity_logs')
@@ -255,26 +329,11 @@ setInterval(async () => {
     if (buildingsChanged) {
       const diff = diffBuildings(lastBuildings, buildings);
       logChanges(diff);
-
-      broadcast({
-        type: 'initialData',
-        data: buildings,
-        changes: {
-          added:   diff.added.map(b => ({ id: b.id, name: b.name })),
-          deleted: diff.deleted.map(b => ({ id: b.id, name: b.name })),
-          updated: diff.updated.map(({ building, changes }) => ({
-            id: building.id,
-            name: building.name,
-            changes
-          }))
-        }
-      });
-
+      broadcastBuildings(buildings, diff);
       lastBuildings = buildings;
     }
 
-    // Push admin dashboard if anything changed at all
-    if (buildingsChanged || logsChanged) {
+    if (logsChanged) {
       lastLogCount = Number(cnt);
       await pushAdminUpdate();
     }
@@ -298,7 +357,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── EXISTING: get buildings for the map (untouched) ──
+    // ── get buildings for the map ──
     if (data.action === 'getBuildings') {
       try {
         const buildings = await fetchAllBuildings();
@@ -312,7 +371,20 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: admin login ──────────────────────────────────────────
+    // ── get announcements ──
+    if (data.action === 'getAnnouncements') {
+      try {
+        const announcements = await fetchAllAnnouncements();
+        ws.send(JSON.stringify({ type: 'announcementsData', data: announcements }));
+        console.log(`\x1b[36m[${time()}] 📢 Sent announcements to client (${announcements.length})\x1b[0m`);
+      } catch (err) {
+        console.error('Error fetching announcements:', err);
+        ws.send(JSON.stringify({ type: 'announcementsData', data: [] }));
+      }
+      return;
+    }
+
+    // ── admin login ──
     if (data.action === 'adminLogin') {
       const { username, password } = data;
       try {
@@ -345,7 +417,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: all actions below require a valid session token ──────
+    // ── all actions below require a valid session token ──
     const session = sessions[data.token];
     if (data.token !== undefined && !session) {
       ws.send(JSON.stringify({ type: 'authError', message: 'Unauthorized' }));
@@ -358,7 +430,7 @@ wss.on('connection', (ws) => {
     const adminId  = ws.adminId;
     const fullName = ws.adminName;
 
-    // ── NEW: get dashboard ────────────────────────────────────────
+    // ── get dashboard ──
     if (data.action === 'getDashboard') {
       try {
         const [stats, logs, buildings] = await Promise.all([
@@ -373,7 +445,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: add building ─────────────────────────────────────────
+    // ── add building ──
     if (data.action === 'saveBuilding') {
       const { name, description, points } = data;
       try {
@@ -390,6 +462,13 @@ wss.on('connection', (ws) => {
         ));
         await logActivity(adminId, 'ADD', 'buildings', buildingId,
           `${fullName} added building "${name}"`);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'saveBuildingSuccess', buildingId, name }));
       } catch (err) {
         console.error('Save building error:', err);
@@ -398,7 +477,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: delete building ──────────────────────────────────────
+    // ── delete building ──
     if (data.action === 'deleteBuilding') {
       const { buildingId } = data;
       try {
@@ -410,6 +489,13 @@ wss.on('connection', (ws) => {
         await pool.query('DELETE FROM buildings WHERE id = ?', [buildingId]);
         await logActivity(adminId, 'DELETE', 'buildings', buildingId,
           `${fullName} deleted building "${building.name}"`);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'deleteBuildingSuccess', buildingId }));
       } catch (err) {
         console.error('Delete building error:', err);
@@ -418,7 +504,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: update building ──────────────────────────────────────
+    // ── update building ──
     if (data.action === 'updateBuilding') {
       const { buildingId, name, description } = data;
       try {
@@ -435,6 +521,13 @@ wss.on('connection', (ws) => {
           ? `${fullName} renamed building "${old.name}" → "${name}"`
           : `${fullName} updated building "${name}"`;
         await logActivity(adminId, 'UPDATE', 'buildings', buildingId, details);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'updateBuildingSuccess', buildingId }));
       } catch (err) {
         console.error('Update building error:', err);
@@ -443,7 +536,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: add room ─────────────────────────────────────────────
+    // ── add room ──
     if (data.action === 'addRoom') {
       const { buildingId, name, floor, details, type } = data;
       try {
@@ -458,6 +551,13 @@ wss.on('connection', (ws) => {
         );
         await logActivity(adminId, 'ADD', 'rooms', result.insertId,
           `${fullName} added room "${name}" (Floor ${floor}) to "${building.name}"`);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'addRoomSuccess', roomId: result.insertId }));
       } catch (err) {
         console.error('Add room error:', err);
@@ -466,7 +566,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: delete room ──────────────────────────────────────────
+    // ── delete room ──
     if (data.action === 'deleteRoom') {
       const { roomId } = data;
       try {
@@ -480,6 +580,13 @@ wss.on('connection', (ws) => {
         await pool.query('DELETE FROM rooms WHERE id = ?', [roomId]);
         await logActivity(adminId, 'DELETE', 'rooms', roomId,
           `${fullName} deleted room "${room.name}" (Floor ${room.floor}) from "${room.building_name}"`);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'deleteRoomSuccess', roomId }));
       } catch (err) {
         console.error('Delete room error:', err);
@@ -488,7 +595,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // ── NEW: update room ──────────────────────────────────────────
+    // ── update room ──
     if (data.action === 'updateRoom') {
       const { roomId, name, floor, details, type } = data;
       try {
@@ -505,10 +612,67 @@ wss.on('connection', (ws) => {
         );
         await logActivity(adminId, 'UPDATE', 'rooms', roomId,
           `${fullName} updated room "${old.name}" → "${name}" (Floor ${floor}) in "${old.building_name}"`);
+        
+        // Broadcast updated buildings to ALL clients
+        const updatedBuildings = await fetchAllBuildings();
+        lastBuildings = updatedBuildings;
+        broadcastBuildings(updatedBuildings);
+        await pushAdminUpdate();
+        
         ws.send(JSON.stringify({ type: 'updateRoomSuccess', roomId }));
       } catch (err) {
         console.error('Update room error:', err);
         ws.send(JSON.stringify({ type: 'error', message: 'Failed to update room' }));
+      }
+      return;
+    }
+
+    // ── add announcement ──
+    if (data.action === 'addAnnouncement') {
+      const { title, message } = data;
+      if (!title || !message) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Title and message required' }));
+        return;
+      }
+      try {
+        await createAnnouncement(adminId, title, message);
+        await broadcastAnnouncements();
+        await pushAdminUpdate();
+        ws.send(JSON.stringify({ type: 'addAnnouncementSuccess' }));
+        console.log(`\x1b[32m[${time()}] 📢 Announcement added: "${title}"\x1b[0m`);
+      } catch (err) {
+        console.error('Add announcement error:', err);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to add announcement' }));
+      }
+      return;
+    }
+
+    // ── delete announcement ──
+    if (data.action === 'deleteAnnouncement') {
+      const { announcementId } = data;
+      try {
+        await deleteAnnouncement(adminId, announcementId);
+        await broadcastAnnouncements();
+        await pushAdminUpdate();
+        ws.send(JSON.stringify({ type: 'deleteAnnouncementSuccess' }));
+      } catch (err) {
+        console.error('Delete announcement error:', err);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to delete announcement' }));
+      }
+      return;
+    }
+
+    // ── update announcement ──
+    if (data.action === 'updateAnnouncement') {
+      const { announcementId, title, message } = data;
+      try {
+        await updateAnnouncement(adminId, announcementId, title, message);
+        await broadcastAnnouncements();
+        await pushAdminUpdate();
+        ws.send(JSON.stringify({ type: 'updateAnnouncementSuccess' }));
+      } catch (err) {
+        console.error('Update announcement error:', err);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to update announcement' }));
       }
       return;
     }

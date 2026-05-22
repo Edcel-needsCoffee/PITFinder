@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PIT Admin</title>
+  <title>PIT Admin - Full Control</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     :root {
       --green:      #17b890;
@@ -33,9 +35,10 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow: hidden;
     }
 
-    /* ── LOGIN ─────────────────────────────────── */
+    /* Login Screen */
     #login-screen {
       min-height: 100vh;
       display: flex;
@@ -107,17 +110,18 @@
       font-size: 0.85rem; text-align: center;
     }
 
-    /* ── DASHBOARD ─────────────────────────────── */
-    #dashboard { display: none; }
+    /* Dashboard Layout */
+    #dashboard { display: none; height: 100vh; flex-direction: column; }
 
     .topbar {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 0 28px;
       height: 58px;
-      display: flex; align-items: center;
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      position: sticky; top: 0; z-index: 100;
+      flex-shrink: 0;
     }
 
     .topbar-left {
@@ -156,169 +160,403 @@
     }
     .admin-badge strong { color: var(--text); }
 
-    /* ADDED: back to map button */
-    .btn-back {
+    .btn-back, .btn-logout {
       padding: 6px 14px;
-      border: 1.5px solid #b2dfd3;
       border-radius: 7px;
-      background: var(--green-light);
-      color: var(--green-dark);
       font-size: 0.82rem;
       font-family: 'DM Sans', sans-serif;
       font-weight: 500;
       cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-back {
+      border: 1.5px solid #b2dfd3;
+      background: var(--green-light);
+      color: var(--green-dark);
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      transition: all 0.15s;
     }
     .btn-back:hover {
       background: #c8ede4;
       border-color: var(--green);
     }
-
     .btn-logout {
-      padding: 6px 14px;
       border: 1.5px solid var(--border);
-      border-radius: 7px; background: transparent;
-      font-size: 0.82rem; font-family: 'DM Sans', sans-serif;
-      color: var(--muted); cursor: pointer;
-      transition: all 0.15s;
+      background: transparent;
+      color: var(--muted);
     }
     .btn-logout:hover {
-      border-color: var(--del); color: var(--del);
+      border-color: var(--del);
+      color: var(--del);
     }
 
-    /* ── CONTENT ───────────────────────────────── */
-    .content { padding: 24px 28px; max-width: 1300px; margin: 0 auto; }
-
-    /* stats row */
+    /* Stats Row */
     .stats-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 14px;
-      margin-bottom: 24px;
+      padding: 16px 24px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
     .stat {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px 20px;
+      padding: 14px 18px;
       transition: transform 0.2s;
     }
     .stat:hover { transform: translateY(-2px); }
 
     .stat-label {
-      font-size: 0.75rem; font-weight: 500;
+      font-size: 0.7rem; font-weight: 500;
       color: var(--muted); letter-spacing: 0.05em;
-      text-transform: uppercase; margin-bottom: 8px;
+      text-transform: uppercase; margin-bottom: 6px;
     }
     .stat-value {
-      font-size: 2rem; font-weight: 600;
+      font-size: 1.6rem; font-weight: 600;
       color: var(--text); line-height: 1;
       font-family: 'DM Mono', monospace;
-      transition: color 0.3s;
     }
-    .stat-value.pop { color: var(--green); }
     .stat-sub {
-      font-size: 0.75rem; color: var(--muted); margin-top: 5px;
+      font-size: 0.7rem; color: var(--muted); margin-top: 4px;
     }
     .stat.accent { border-left: 3px solid var(--green); }
     .stat.warn   { border-left: 3px solid #e67e22; }
     .stat.danger { border-left: 3px solid var(--del); }
     .stat.info   { border-left: 3px solid #2980b9; }
 
-    /* two column */
-    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media(max-width: 860px) { .cols { grid-template-columns: 1fr; } }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+    /* Main Content Layout - 3 Columns */
+    .admin-container {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      gap: 0;
+      flex: 1;
       overflow: hidden;
     }
 
-    .panel-head {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-      transition: background 0.4s;
-    }
-    .panel-head.flash { background: var(--green-light); }
-    .panel-head h3 {
-      font-size: 0.875rem; font-weight: 600; color: var(--text);
-    }
-    .panel-head span {
-      font-size: 0.75rem; color: var(--muted);
+    /* Left Panel - Buildings List & CRUD */
+    .left-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
-    .panel-body { max-height: 420px; overflow-y: auto; }
-
-    /* audit log rows */
-    .log-row {
-      padding: 12px 20px;
+    .panel-section {
       border-bottom: 1px solid var(--border);
-      display: flex; gap: 12px; align-items: flex-start;
-      animation: slideIn 0.25s ease;
     }
-    .log-row:last-child { border-bottom: none; }
+
+    .section-header {
+      padding: 12px 16px;
+      background: #fafbfa;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-header button {
+      background: var(--green);
+      border: none;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+
+    .section-header button:hover {
+      background: var(--green-dark);
+    }
+
+    .buildings-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .building-card {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .building-card:hover {
+      background: var(--green-light);
+    }
+
+    .building-card.selected {
+      border-color: var(--green);
+      background: var(--green-light);
+    }
+
+    .building-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .building-stats {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .building-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      transition: all 0.2s;
+    }
+
+    .icon-btn.edit { color: var(--upd); background: var(--upd-bg); }
+    .icon-btn.delete { color: var(--del); background: var(--del-bg); }
+    .icon-btn.add-room { color: var(--add); background: var(--add-bg); }
+
+    .icon-btn:hover { opacity: 0.8; transform: scale(1.02); }
+
+    /* Center Panel - Map & Polygon Drawing */
+    .center-panel {
+      position: relative;
+      background: #e8ece8;
+    }
+
+    #admin-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .draw-tools {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      display: flex;
+      gap: 6px;
+    }
+
+    .draw-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .draw-btn.start {
+      background: var(--green);
+      color: white;
+    }
+
+    .draw-btn.start.active {
+      background: var(--del);
+    }
+
+    .draw-btn.save {
+      background: var(--add);
+      color: white;
+    }
+
+    .draw-btn.cancel {
+      background: var(--del-bg);
+      color: var(--del);
+    }
+
+    /* Right Panel - Forms, Rooms, Activity */
+    .right-panel {
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .form-section, .rooms-section, .activity-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .submit-btn {
+      background: var(--green);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+      margin-top: 6px;
+      font-size: 0.8rem;
+    }
+
+    .submit-btn:hover { background: var(--green-dark); }
+
+    .stats-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stat-mini {
+      text-align: center;
+      padding: 8px;
+      background: var(--bg);
+      border-radius: 6px;
+    }
+
+    .stat-mini-value {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    h4 {
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .rooms-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .room-item-admin {
+      background: var(--bg);
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 6px;
+    }
+
+    .room-name {
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .room-meta {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .room-actions {
+      margin-top: 6px;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Activity Log */
+    .activity-log-list {
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+    }
+
+    .log-badge {
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    .message-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      color: white;
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
-    .badge {
-      font-size: 0.68rem; font-weight: 600;
-      padding: 2px 8px; border-radius: 4px;
-      white-space: nowrap; margin-top: 2px;
-      font-family: 'DM Mono', monospace;
-      letter-spacing: 0.04em;
-    }
-    .badge-ADD    { background: var(--add-bg);  color: var(--add); }
-    .badge-DELETE { background: var(--del-bg);  color: var(--del); }
-    .badge-UPDATE { background: var(--upd-bg);  color: var(--upd); }
-    .badge-LOGIN  { background: var(--log-bg);  color: var(--log); }
-
-    .log-detail { font-size: 0.855rem; color: var(--text); line-height: 1.45; }
-    .log-meta   { font-size: 0.76rem;  color: var(--muted); margin-top: 2px; }
-    .log-meta strong { color: var(--text); font-weight: 500; }
-
-    /* buildings list */
-    .brow {
-      padding: 11px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .brow:last-child { border-bottom: none; }
-    .brow-name { font-size: 0.875rem; font-weight: 500; color: var(--text); }
-    .brow-date { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .room-pill {
-      font-size: 0.75rem; font-weight: 600;
-      padding: 3px 10px; border-radius: 20px;
-      font-family: 'DM Mono', monospace;
-      background: var(--green-light); color: var(--green-dark);
-    }
-    .room-pill.zero { background: var(--del-bg); color: var(--del); }
-
-    .empty {
-      padding: 40px 20px; text-align: center;
-      font-size: 0.875rem; color: var(--muted);
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-size: 0.8rem;
     }
   </style>
 </head>
 <body>
 
-<!-- ── LOGIN ── -->
 <div id="login-screen">
   <div class="login-wrap">
     <div class="logo">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
     </div>
     <h1>PIT Admin</h1>
-    <p>Sign in to manage buildings and view audit logs</p>
+    <p>Sign in to manage buildings, rooms, announcements, and view analytics</p>
 
     <div class="field">
       <label>Username</label>
@@ -333,237 +571,889 @@
   </div>
 </div>
 
-<!-- ── DASHBOARD ── -->
 <div id="dashboard">
-
   <div class="topbar">
     <div class="topbar-left">
       <div class="topbar-logo">
         <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
       </div>
-      <h1>PIT Admin</h1>
+      <h1>PIT Admin Control</h1>
     </div>
     <div class="topbar-right">
-      <div class="live-pill"><div class="live-dot"></div> Live</div>
+      <div class="live-pill"><div class="live-dot"></div> Live Updates</div>
       <span class="admin-badge">Signed in as <strong id="admin-name-display">—</strong></span>
-      <!-- ADDED: back to map -->
       <a href="index.php" class="btn-back">← Back to Map</a>
       <button class="btn-logout" onclick="doLogout()">Sign out</button>
     </div>
   </div>
 
-  <div class="content">
+  <!-- STATS ROW - Analytics -->
+  <div class="stats-row">
+    <div class="stat accent">
+      <div class="stat-label">Buildings</div>
+      <div class="stat-value" id="stat-buildings">—</div>
+      <div class="stat-sub">on the map</div>
+    </div>
+    <div class="stat info">
+      <div class="stat-label">Rooms</div>
+      <div class="stat-value" id="stat-rooms">—</div>
+      <div class="stat-sub">total across all</div>
+    </div>
+    <div class="stat warn">
+      <div class="stat-label">No rooms yet</div>
+      <div class="stat-value" id="stat-norooms">—</div>
+      <div class="stat-sub">buildings empty</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Announcements</div>
+      <div class="stat-value" id="stat-announcements">—</div>
+      <div class="stat-sub">total posted</div>
+    </div>
+    <div class="stat danger">
+      <div class="stat-label">Actions today</div>
+      <div class="stat-value" id="stat-actions">—</div>
+      <div class="stat-sub">by all admins</div>
+    </div>
+    <div class="stat info">
+      <div class="stat-label">Last action by</div>
+      <div class="stat-value" style="font-size:0.9rem; padding-top:4px;" id="stat-last-who">—</div>
+      <div class="stat-sub" id="stat-last">—</div>
+    </div>
+  </div>
 
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat accent">
-        <div class="stat-label">Buildings</div>
-        <div class="stat-value" id="stat-buildings">—</div>
-        <div class="stat-sub">on the map</div>
+  <!-- MAIN CONTENT - 3 Columns with CRUD -->
+  <div class="admin-container">
+    <!-- LEFT PANEL: Buildings List -->
+    <div class="left-panel">
+      <div class="section-header">
+        <span>🏢 BUILDINGS</span>
+        <button onclick="showAddBuildingForm()">+ New Building</button>
       </div>
-      <div class="stat info">
-        <div class="stat-label">Rooms</div>
-        <div class="stat-value" id="stat-rooms">—</div>
-        <div class="stat-sub">total across all</div>
-      </div>
-      <div class="stat warn">
-        <div class="stat-label">No rooms yet</div>
-        <div class="stat-value" id="stat-norooms">—</div>
-        <div class="stat-sub">buildings empty</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Announcements</div>
-        <div class="stat-value" id="stat-announcements">—</div>
-        <div class="stat-sub">total posted</div>
-      </div>
-      <div class="stat danger">
-        <div class="stat-label">Actions today</div>
-        <div class="stat-value" id="stat-actions">—</div>
-        <div class="stat-sub">by all admins</div>
-      </div>
-      <div class="stat info">
-        <div class="stat-label">Last action by</div>
-        <div class="stat-value" style="font-size:1rem; padding-top:4px;" id="stat-last-who">—</div>
-        <div class="stat-sub" id="stat-last">—</div>
+      <div class="buildings-list" id="buildings-list-admin">
+        <div class="loading">Loading buildings...</div>
       </div>
     </div>
 
-    <!-- Two columns -->
-    <div class="cols">
+    <!-- CENTER PANEL: Map for Polygon Drawing -->
+    <div class="center-panel">
+      <div id="admin-map"></div>
+      <div class="draw-tools">
+        <button class="draw-btn start" id="start-draw-btn" onclick="startDrawingPolygon()">✏️ Draw Polygon</button>
+        <button class="draw-btn save" id="save-polygon-btn" onclick="saveBuildingPolygon()" style="display: none;">💾 Save</button>
+        <button class="draw-btn cancel" id="cancel-draw-btn" onclick="cancelDrawing()" style="display: none;">❌ Cancel</button>
+      </div>
+    </div>
 
-      <!-- Audit log -->
-      <div class="panel">
-        <div class="panel-head" id="log-head">
-          <h3>Audit log</h3>
-          <span>who did what &amp; when</span>
-        </div>
-        <div class="panel-body" id="activity-log">
-          <div class="empty">No activity yet.</div>
+    <!-- RIGHT PANEL: Forms, Rooms, Announcements, Activity Log -->
+    <div class="right-panel">
+      <!-- Building Form -->
+      <div class="form-section" id="building-form-section">
+        <h4>🏗️ Building Details</h4>
+        <div id="building-form">
+          <div class="form-group">
+            <label>Building Name</label>
+            <input type="text" id="building-name" placeholder="e.g., Engineering Building">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="building-desc" rows="2" placeholder="Description..."></textarea>
+          </div>
+          <div class="stats-mini">
+            <div class="stat-mini">
+              <div class="stat-mini-value" id="polygon-points">0</div>
+              <div>Polygon Points</div>
+            </div>
+            <div class="stat-mini">
+              <div class="stat-mini-value" id="polygon-status">Not drawn</div>
+              <div>Status</div>
+            </div>
+          </div>
+          <button class="submit-btn" id="save-building-btn" onclick="saveBuilding()">➕ Create Building</button>
+          <button class="submit-btn" id="update-building-btn" onclick="updateBuilding()" style="display: none;">✏️ Update Building</button>
+          <button class="submit-btn" id="cancel-edit-btn" onclick="cancelEditBuilding()" style="display: none; background: #95a5a6;">Cancel Edit</button>
         </div>
       </div>
 
-      <!-- Buildings overview -->
-      <div class="panel">
-        <div class="panel-head">
-          <h3>Buildings</h3>
-          <span id="bcount-label"></span>
+      <!-- Rooms Management -->
+      <div class="rooms-section" id="rooms-section" style="display: none;">
+        <h4>🚪 Rooms <span id="current-building-name"></span></h4>
+        <div id="room-form">
+          <div class="form-group">
+            <label>Room Name</label>
+            <input type="text" id="room-name" placeholder="e.g., Room 101">
+          </div>
+          <div class="form-group">
+            <label>Floor</label>
+            <input type="number" id="room-floor" placeholder="Floor number">
+          </div>
+          <div class="form-group">
+            <label>Type (optional)</label>
+            <input type="text" id="room-type" placeholder="e.g., Classroom, Lab, Office">
+          </div>
+          <div class="form-group">
+            <label>Details</label>
+            <textarea id="room-details" rows="2" placeholder="Additional info..."></textarea>
+          </div>
+          <button class="submit-btn" id="add-room-btn" onclick="addRoom()">➕ Add Room</button>
         </div>
-        <div class="panel-body" id="buildings-list">
-          <div class="empty">Loading...</div>
+        <div id="rooms-list" class="rooms-list" style="margin-top: 12px;"></div>
+      </div>
+
+      <!-- ANNOUNCEMENTS MANAGEMENT -->
+      <div class="form-section" id="announcements-section" style="border-bottom: 1px solid var(--border);">
+        <h4>📢 Announcements Management</h4>
+        
+        <!-- Add Announcement Form -->
+        <div id="add-announcement-form">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="announcement-title" placeholder="Announcement title">
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea id="announcement-message" rows="2" placeholder="Announcement message..."></textarea>
+          </div>
+          <button class="submit-btn" id="add-announcement-btn" onclick="addAnnouncement()" style="background: #e67e22;">📢 Post Announcement</button>
+        </div>
+        
+        <!-- Edit Announcement Form (hidden by default) -->
+        <div id="edit-announcement-form" style="display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">
+          <div class="form-group">
+            <label>Edit Title</label>
+            <input type="text" id="edit-announcement-title">
+          </div>
+          <div class="form-group">
+            <label>Edit Message</label>
+            <textarea id="edit-announcement-message" rows="2"></textarea>
+          </div>
+          <input type="hidden" id="edit-announcement-id">
+          <button class="submit-btn" onclick="updateAnnouncement()" style="background: #2980b9;">✏️ Update Announcement</button>
+          <button class="submit-btn" onclick="cancelEditAnnouncement()" style="background: #95a5a6;">Cancel</button>
+        </div>
+        
+        <!-- Announcements List -->
+        <div id="announcements-admin-list" style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+          <div class="loading">Loading announcements...</div>
         </div>
       </div>
 
+      <!-- ACTIVITY LOG - Real-time logs -->
+      <div class="activity-section">
+        <h4>📋 Real-time Activity Log</h4>
+        <div class="activity-log-list" id="activity-log-list">
+          <div class="loading">Loading activity...</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<script>
-  const socket     = new WebSocket('ws://localhost:8080');
-  let sessionToken = localStorage.getItem('adminToken');
-  let isConnected  = false;
+<div id="message-toast" style="display: none;"></div>
 
-  socket.onopen = () => {
-    isConnected = true;
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // ========== CONFIGURATION ==========
+  const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+  let sessionToken = localStorage.getItem('adminToken');
+  let currentAdminName = localStorage.getItem('adminName');
+  let allBuildings = [];
+  let selectedBuildingId = null;
+  let editingBuildingId = null;
+  
+  // Map and drawing variables
+  let adminMap;
+  let drawingLayer;
+  let drawnPolygon = null;
+  let isDrawingMode = false;
+  let currentPolygonPoints = [];
+  
+  // Store latest stats for display
+  let currentStats = {};
+  
+  // Function to refresh all data
+  function refreshAllData() {
     if (sessionToken) {
-      showDashboard(localStorage.getItem('adminName'));
+      socket.send(JSON.stringify({ action: 'getBuildings' }));
       socket.send(JSON.stringify({ action: 'getDashboard', token: sessionToken }));
+      socket.send(JSON.stringify({ action: 'getAnnouncements', token: sessionToken }));
+      console.log('🔄 Refreshing all data...');
+    }
+  }
+  
+  // Map initialization
+  function initAdminMap() {
+    adminMap = L.map('admin-map').setView([11.05265010, 124.38706219], 18);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors & CARTO'
+    }).addTo(adminMap);
+    
+    drawingLayer = L.layerGroup().addTo(adminMap);
+  }
+  
+  // Polygon drawing
+  function startDrawingPolygon() {
+    if (isDrawingMode) {
+      cancelDrawing();
+      return;
+    }
+    
+    isDrawingMode = true;
+    currentPolygonPoints = [];
+    drawnPolygon = null;
+    drawingLayer.clearLayers();
+    
+    document.getElementById('start-draw-btn').classList.add('active');
+    document.getElementById('start-draw-btn').textContent = '✏️ Drawing...';
+    document.getElementById('save-polygon-btn').style.display = 'inline-block';
+    document.getElementById('cancel-draw-btn').style.display = 'inline-block';
+    document.getElementById('polygon-status').textContent = 'Drawing...';
+    document.getElementById('polygon-points').textContent = '0';
+    
+    showToast('Click on the map to add polygon points. Double-click to finish.', 'info');
+    
+    adminMap.on('click', onMapClick);
+    adminMap.on('dblclick', finishDrawing);
+  }
+  
+  function onMapClick(e) {
+    if (!isDrawingMode) return;
+    
+    const latlng = [e.latlng.lat, e.latlng.lng];
+    currentPolygonPoints.push(latlng);
+    
+    drawingLayer.clearLayers();
+    if (currentPolygonPoints.length > 0) {
+      L.polygon(currentPolygonPoints, {
+        color: '#17b890',
+        weight: 3,
+        fillColor: '#17b890',
+        fillOpacity: 0.3
+      }).addTo(drawingLayer);
+      
+      currentPolygonPoints.forEach((point, i) => {
+        L.marker(point, {
+          icon: L.divIcon({
+            className: 'polygon-marker',
+            html: `<div style="background:#17b890; color:white; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:9px;">${i+1}</div>`,
+            iconSize: [18, 18]
+          })
+        }).addTo(drawingLayer);
+      });
+    }
+    
+    document.getElementById('polygon-points').textContent = currentPolygonPoints.length;
+  }
+  
+  function finishDrawing() {
+    if (!isDrawingMode) return;
+    if (currentPolygonPoints.length < 3) {
+      showToast('Need at least 3 points to create a polygon!', 'error');
+      return;
+    }
+    
+    isDrawingMode = false;
+    adminMap.off('click', onMapClick);
+    adminMap.off('dblclick', finishDrawing);
+    
+    document.getElementById('start-draw-btn').classList.remove('active');
+    document.getElementById('start-draw-btn').textContent = '✏️ Draw Polygon';
+    document.getElementById('polygon-status').textContent = 'Ready to save';
+    showToast('Polygon complete! Click "Save" to save the polygon.', 'success');
+  }
+  
+  function cancelDrawing() {
+    isDrawingMode = false;
+    currentPolygonPoints = [];
+    drawnPolygon = null;
+    drawingLayer.clearLayers();
+    adminMap.off('click', onMapClick);
+    adminMap.off('dblclick', finishDrawing);
+    
+    document.getElementById('start-draw-btn').classList.remove('active');
+    document.getElementById('start-draw-btn').textContent = '✏️ Draw Polygon';
+    document.getElementById('save-polygon-btn').style.display = 'none';
+    document.getElementById('cancel-draw-btn').style.display = 'none';
+    document.getElementById('polygon-status').textContent = 'Not drawn';
+    document.getElementById('polygon-points').textContent = '0';
+  }
+  
+  function saveBuildingPolygon() {
+    if (currentPolygonPoints.length < 3) {
+      showToast('Draw a polygon first!', 'error');
+      return;
+    }
+    drawnPolygon = [...currentPolygonPoints];
+    document.getElementById('polygon-status').textContent = 'Polygon saved!';
+    document.getElementById('save-polygon-btn').style.display = 'none';
+    document.getElementById('cancel-draw-btn').style.display = 'none';
+    showToast('Polygon saved. You can now create/update the building.', 'success');
+  }
+  
+  // WebSocket handlers
+  socket.onopen = () => {
+    console.log('✅ WebSocket connected');
+    if (sessionToken) {
+      refreshAllData();
     }
   };
-
-  socket.onerror = () => showError('Cannot connect to server. Is it running?');
-  socket.onclose = () => { isConnected = false; };
-
+  
   socket.onmessage = (event) => {
     let msg;
     try { msg = JSON.parse(event.data); } catch(e) { return; }
-
+    
+    console.log('📨 Received:', msg.type);
+    
     if (msg.type === 'loginSuccess') {
       localStorage.setItem('adminToken', msg.token);
-      localStorage.setItem('adminName',  msg.fullName);
+      localStorage.setItem('adminName', msg.fullName);
       sessionToken = msg.token;
-      showDashboard(msg.fullName);
-      socket.send(JSON.stringify({ action: 'getDashboard', token: msg.token }));
+      currentAdminName = msg.fullName;
+      document.getElementById('admin-name-display').textContent = msg.fullName;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'flex';
+      initAdminMap();
+      refreshAllData();
+      showToast(`Welcome, ${msg.fullName}!`, 'success');
     }
-
-    if (msg.type === 'loginFailed')  showError('Invalid username or password.');
-    if (msg.type === 'authError')    doLogout();
-
+    
+    if (msg.type === 'loginFailed') showError('Invalid username or password.');
+    if (msg.type === 'authError') doLogout();
+    
+    if (msg.type === 'initialData') {
+      console.log('🏢 Buildings updated:', msg.data.length);
+      allBuildings = msg.data;
+      renderBuildingsList();
+    }
+    
+    if (msg.type === 'announcementsData') {
+      console.log('📢 Announcements updated:', msg.data.length);
+      renderAdminAnnouncements(msg.data);
+    }
+    
     if (msg.type === 'dashboardData' || msg.type === 'activityUpdate') {
-      renderStats(msg.stats);
-      renderLog(msg.logs);
-      renderBuildings(msg.buildings);
-      if (msg.type === 'activityUpdate') flashLogHead();
+      if (msg.stats) {
+        currentStats = msg.stats;
+        renderStats(msg.stats);
+      }
+      if (msg.logs) renderActivityLog(msg.logs);
+      if (msg.buildings) renderBuildingsListFromOverview(msg.buildings);
     }
+    
+    // After any CRUD operation, refresh data
+    if (msg.type === 'saveBuildingSuccess' || msg.type === 'updateBuildingSuccess' ||
+        msg.type === 'deleteBuildingSuccess' || msg.type === 'addRoomSuccess' ||
+        msg.type === 'updateRoomSuccess' || msg.type === 'deleteRoomSuccess') {
+      showToast('Operation completed successfully!', 'success');
+      cancelEditBuilding();
+      refreshAllData();
+    }
+    
+    if (msg.type === 'addAnnouncementSuccess' || msg.type === 'updateAnnouncementSuccess' || msg.type === 'deleteAnnouncementSuccess') {
+      showToast('Announcement updated successfully!', 'success');
+      refreshAllData();
+    }
+    
+    if (msg.type === 'error') showToast(msg.message, 'error');
   };
-
-  // ── Auth ──
+  
+  // Render Stats
+  function renderStats(stats) {
+    if (!stats) return;
+    document.getElementById('stat-buildings').textContent = stats.totalBuildings || 0;
+    document.getElementById('stat-rooms').textContent = stats.totalRooms || 0;
+    document.getElementById('stat-norooms').textContent = stats.buildingsNoRooms || 0;
+    document.getElementById('stat-announcements').textContent = stats.totalAnnouncements || 0;
+    document.getElementById('stat-actions').textContent = stats.actionsToday || 0;
+    document.getElementById('stat-last-who').textContent = stats.lastActionBy || '—';
+    document.getElementById('stat-last').textContent = stats.lastAction || '—';
+  }
+  
+  // Render buildings list
+  function renderBuildingsList() {
+    const container = document.getElementById('buildings-list-admin');
+    if (!allBuildings.length) {
+      container.innerHTML = '<div class="loading">No buildings yet. Create one!</div>';
+      return;
+    }
+    
+    container.innerHTML = allBuildings.map(b => `
+      <div class="building-card ${selectedBuildingId === b.id ? 'selected' : ''}" onclick="selectBuilding(${b.id})">
+        <div class="building-name">
+          ${escapeHtml(b.name)}
+          <span style="font-size:0.65rem; color:var(--green);">${b.room?.length || 0} rooms</span>
+        </div>
+        <div class="building-stats">
+          Polygon: ${b.polygon?.length || 0} points
+        </div>
+        <div class="building-actions">
+          <button class="icon-btn edit" onclick="event.stopPropagation(); editBuilding(${b.id})">✏️ Edit</button>
+          <button class="icon-btn add-room" onclick="event.stopPropagation(); showAddRoomForm(${b.id}, '${escapeHtml(b.name)}')">➕ Room</button>
+          <button class="icon-btn delete" onclick="event.stopPropagation(); deleteBuilding(${b.id}, '${escapeHtml(b.name)}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  function renderBuildingsListFromOverview(buildings) {
+    const container = document.getElementById('buildings-list-admin');
+    if (!buildings || !buildings.length) {
+      if (allBuildings.length) return;
+      container.innerHTML = '<div class="loading">No buildings yet. Create one!</div>';
+      return;
+    }
+    
+    container.innerHTML = buildings.map(b => `
+      <div class="building-card ${selectedBuildingId === b.id ? 'selected' : ''}" onclick="selectBuilding(${b.id})">
+        <div class="building-name">
+          ${escapeHtml(b.name)}
+          <span style="font-size:0.65rem; color:var(--green);">${b.room_count || 0} rooms</span>
+        </div>
+        <div class="building-stats">
+          Created: ${new Date(b.date_created).toLocaleDateString()}
+        </div>
+        <div class="building-actions">
+          <button class="icon-btn edit" onclick="event.stopPropagation(); editBuilding(${b.id})">✏️ Edit</button>
+          <button class="icon-btn add-room" onclick="event.stopPropagation(); showAddRoomForm(${b.id}, '${escapeHtml(b.name)}')">➕ Room</button>
+          <button class="icon-btn delete" onclick="event.stopPropagation(); deleteBuilding(${b.id}, '${escapeHtml(b.name)}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  function selectBuilding(id) {
+    selectedBuildingId = id;
+    renderBuildingsList();
+    loadBuildingDetails(id);
+    loadRoomsForBuilding(id);
+    document.getElementById('rooms-section').style.display = 'block';
+    
+    const building = allBuildings.find(b => b.id === id);
+    if (building && building.polygon && building.polygon.length >= 3) {
+      const polygonCoords = building.polygon;
+      const bounds = L.latLngBounds(polygonCoords);
+      adminMap.flyToBounds(bounds, { padding: [50, 50] });
+      
+      drawingLayer.clearLayers();
+      L.polygon(polygonCoords, {
+        color: '#17b890',
+        weight: 3,
+        fillColor: '#17b890',
+        fillOpacity: 0.3
+      }).addTo(drawingLayer);
+    }
+  }
+  
+  function loadBuildingDetails(id) {
+    const building = allBuildings.find(b => b.id === id);
+    if (building) {
+      document.getElementById('building-name').value = building.name;
+      document.getElementById('building-desc').value = building.description || '';
+      document.getElementById('save-building-btn').style.display = 'none';
+      document.getElementById('update-building-btn').style.display = 'block';
+      document.getElementById('cancel-edit-btn').style.display = 'block';
+      editingBuildingId = id;
+      
+      if (building.polygon && building.polygon.length >= 3) {
+        drawnPolygon = building.polygon;
+        document.getElementById('polygon-status').textContent = 'Loaded';
+        document.getElementById('polygon-points').textContent = building.polygon.length;
+      } else {
+        drawnPolygon = null;
+        document.getElementById('polygon-status').textContent = 'No polygon';
+      }
+    }
+  }
+  
+  function loadRoomsForBuilding(buildingId) {
+    const building = allBuildings.find(b => b.id === buildingId);
+    if (!building) return;
+    
+    document.getElementById('current-building-name').innerHTML = `for "${escapeHtml(building.name)}"`;
+    
+    const roomsContainer = document.getElementById('rooms-list');
+    if (!building.room || building.room.length === 0) {
+      roomsContainer.innerHTML = '<div style="text-align:center; padding:15px; color:var(--muted); font-size:0.75rem;">No rooms yet. Add one above!</div>';
+      return;
+    }
+    
+    roomsContainer.innerHTML = building.room.map(room => `
+      <div class="room-item-admin">
+        <div class="room-name">${escapeHtml(room.name)}</div>
+        <div class="room-meta">Floor ${room.floor || '?'} | ${room.type || 'General'}</div>
+        <div class="room-meta">${escapeHtml(room.details || 'No details')}</div>
+        <div class="room-actions">
+          <button class="icon-btn edit" onclick="editRoom(${room.id}, '${escapeHtml(room.name)}', ${room.floor || 0}, '${escapeHtml(room.type || '')}', '${escapeHtml(room.details || '')}')">✏️ Edit</button>
+          <button class="icon-btn delete" onclick="deleteRoom(${room.id}, '${escapeHtml(room.name)}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Building CRUD
+  function showAddBuildingForm() {
+    cancelEditBuilding();
+    document.getElementById('building-name').value = '';
+    document.getElementById('building-desc').value = '';
+    drawnPolygon = null;
+    currentPolygonPoints = [];
+    drawingLayer.clearLayers();
+    document.getElementById('polygon-status').textContent = 'Not drawn';
+    document.getElementById('polygon-points').textContent = '0';
+    document.getElementById('save-building-btn').style.display = 'block';
+    document.getElementById('update-building-btn').style.display = 'none';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    editingBuildingId = null;
+    selectedBuildingId = null;
+    renderBuildingsList();
+    document.getElementById('rooms-section').style.display = 'none';
+  }
+  
+  function saveBuilding() {
+    const name = document.getElementById('building-name').value.trim();
+    const description = document.getElementById('building-desc').value;
+    
+    if (!name) {
+      showToast('Building name is required!', 'error');
+      return;
+    }
+    
+    if (!drawnPolygon || drawnPolygon.length < 3) {
+      showToast('Please draw a polygon for the building first!', 'error');
+      return;
+    }
+    
+    const points = drawnPolygon.map(p => ({ lat: p[0], lng: p[1] }));
+    
+    socket.send(JSON.stringify({
+      action: 'saveBuilding',
+      token: sessionToken,
+      name: name,
+      description: description,
+      points: points
+    }));
+  }
+  
+  function editBuilding(id) {
+    selectBuilding(id);
+  }
+  
+  function updateBuilding() {
+    if (!editingBuildingId) return;
+    
+    const name = document.getElementById('building-name').value.trim();
+    const description = document.getElementById('building-desc').value;
+    
+    if (!name) {
+      showToast('Building name is required!', 'error');
+      return;
+    }
+    
+    socket.send(JSON.stringify({
+      action: 'updateBuilding',
+      token: sessionToken,
+      buildingId: editingBuildingId,
+      name: name,
+      description: description
+    }));
+  }
+  
+  function deleteBuilding(id, name) {
+    if (confirm(`Delete building "${name}"? This will also delete all rooms inside it!`)) {
+      socket.send(JSON.stringify({
+        action: 'deleteBuilding',
+        token: sessionToken,
+        buildingId: id
+      }));
+    }
+  }
+  
+  function cancelEditBuilding() {
+    editingBuildingId = null;
+    selectedBuildingId = null;
+    document.getElementById('building-name').value = '';
+    document.getElementById('building-desc').value = '';
+    document.getElementById('save-building-btn').style.display = 'block';
+    document.getElementById('update-building-btn').style.display = 'none';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    drawnPolygon = null;
+    currentPolygonPoints = [];
+    drawingLayer.clearLayers();
+    document.getElementById('polygon-status').textContent = 'Not drawn';
+    document.getElementById('rooms-section').style.display = 'none';
+    renderBuildingsList();
+  }
+  
+  // Room CRUD
+  function showAddRoomForm(buildingId, buildingName) {
+    selectedBuildingId = buildingId;
+    document.getElementById('rooms-section').style.display = 'block';
+    document.getElementById('current-building-name').innerHTML = `for "${escapeHtml(buildingName)}"`;
+    document.getElementById('room-name').value = '';
+    document.getElementById('room-floor').value = '';
+    document.getElementById('room-type').value = '';
+    document.getElementById('room-details').value = '';
+    document.getElementById('add-room-btn').innerHTML = '➕ Add Room';
+    document.getElementById('add-room-btn').onclick = () => addRoom();
+    
+    loadRoomsForBuilding(buildingId);
+  }
+  
+  function addRoom() {
+    if (!selectedBuildingId) {
+      showToast('Select a building first!', 'error');
+      return;
+    }
+    
+    const name = document.getElementById('room-name').value.trim();
+    const floor = document.getElementById('room-floor').value;
+    const type = document.getElementById('room-type').value;
+    const details = document.getElementById('room-details').value;
+    
+    if (!name) {
+      showToast('Room name is required!', 'error');
+      return;
+    }
+    
+    socket.send(JSON.stringify({
+      action: 'addRoom',
+      token: sessionToken,
+      buildingId: selectedBuildingId,
+      name: name,
+      floor: floor || 0,
+      type: type,
+      details: details
+    }));
+    
+    document.getElementById('room-name').value = '';
+    document.getElementById('room-floor').value = '';
+    document.getElementById('room-type').value = '';
+    document.getElementById('room-details').value = '';
+  }
+  
+  function editRoom(roomId, name, floor, type, details) {
+    document.getElementById('room-name').value = name;
+    document.getElementById('room-floor').value = floor;
+    document.getElementById('room-type').value = type;
+    document.getElementById('room-details').value = details;
+    document.getElementById('add-room-btn').innerHTML = '✏️ Update Room';
+    document.getElementById('add-room-btn').onclick = () => updateRoom(roomId);
+  }
+  
+  function updateRoom(roomId) {
+    const name = document.getElementById('room-name').value.trim();
+    const floor = document.getElementById('room-floor').value;
+    const type = document.getElementById('room-type').value;
+    const details = document.getElementById('room-details').value;
+    
+    if (!name) {
+      showToast('Room name is required!', 'error');
+      return;
+    }
+    
+    socket.send(JSON.stringify({
+      action: 'updateRoom',
+      token: sessionToken,
+      roomId: roomId,
+      name: name,
+      floor: floor || 0,
+      type: type,
+      details: details
+    }));
+    
+    document.getElementById('room-name').value = '';
+    document.getElementById('room-floor').value = '';
+    document.getElementById('room-type').value = '';
+    document.getElementById('room-details').value = '';
+    document.getElementById('add-room-btn').innerHTML = '➕ Add Room';
+    document.getElementById('add-room-btn').onclick = () => addRoom();
+  }
+  
+  function deleteRoom(roomId, name) {
+    if (confirm(`Delete room "${name}"?`)) {
+      socket.send(JSON.stringify({
+        action: 'deleteRoom',
+        token: sessionToken,
+        roomId: roomId
+      }));
+    }
+  }
+  
+  // ========== ANNOUNCEMENTS MANAGEMENT ==========
+  function addAnnouncement() {
+    const title = document.getElementById('announcement-title').value.trim();
+    const message = document.getElementById('announcement-message').value.trim();
+    
+    if (!title || !message) {
+      showToast('Please enter both title and message!', 'error');
+      return;
+    }
+    
+    socket.send(JSON.stringify({
+      action: 'addAnnouncement',
+      token: sessionToken,
+      title: title,
+      message: message
+    }));
+    
+    document.getElementById('announcement-title').value = '';
+    document.getElementById('announcement-message').value = '';
+  }
+  
+  function editAnnouncement(id, title, message) {
+    document.getElementById('edit-announcement-id').value = id;
+    document.getElementById('edit-announcement-title').value = title;
+    document.getElementById('edit-announcement-message').value = message;
+    document.getElementById('add-announcement-form').style.display = 'none';
+    document.getElementById('edit-announcement-form').style.display = 'block';
+  }
+  
+  function updateAnnouncement() {
+    const id = document.getElementById('edit-announcement-id').value;
+    const title = document.getElementById('edit-announcement-title').value.trim();
+    const message = document.getElementById('edit-announcement-message').value.trim();
+    
+    if (!title || !message) {
+      showToast('Please enter both title and message!', 'error');
+      return;
+    }
+    
+    socket.send(JSON.stringify({
+      action: 'updateAnnouncement',
+      token: sessionToken,
+      announcementId: parseInt(id),
+      title: title,
+      message: message
+    }));
+    
+    cancelEditAnnouncement();
+  }
+  
+  function deleteAnnouncement(id, title) {
+    if (confirm(`Delete announcement "${title}"?`)) {
+      socket.send(JSON.stringify({
+        action: 'deleteAnnouncement',
+        token: sessionToken,
+        announcementId: id
+      }));
+    }
+  }
+  
+  function cancelEditAnnouncement() {
+    document.getElementById('edit-announcement-id').value = '';
+    document.getElementById('edit-announcement-title').value = '';
+    document.getElementById('edit-announcement-message').value = '';
+    document.getElementById('add-announcement-form').style.display = 'block';
+    document.getElementById('edit-announcement-form').style.display = 'none';
+  }
+  
+  function renderAdminAnnouncements(announcements) {
+    const container = document.getElementById('announcements-admin-list');
+    if (!announcements || announcements.length === 0) {
+      container.innerHTML = '<div class="loading">No announcements yet. Create one!</div>';
+      return;
+    }
+    
+    container.innerHTML = announcements.map(ann => `
+      <div class="room-item-admin">
+        <div class="room-name">
+          <i class="fas fa-bullhorn" style="color: #e67e22;"></i> 
+          ${escapeHtml(ann.title)}
+        </div>
+        <div class="room-meta">${escapeHtml(ann.message.substring(0, 80))}${ann.message.length > 80 ? '...' : ''}</div>
+        <div class="room-meta"><i class="far fa-calendar-alt"></i> ${new Date(ann.created_at).toLocaleString()}</div>
+        <div class="room-actions">
+          <button class="icon-btn edit" onclick="editAnnouncement(${ann.id}, '${escapeHtml(ann.title)}', '${escapeHtml(ann.message)}')">✏️ Edit</button>
+          <button class="icon-btn delete" onclick="deleteAnnouncement(${ann.id}, '${escapeHtml(ann.title)}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Activity Log (Real-time)
+  function renderActivityLog(logs) {
+    const container = document.getElementById('activity-log-list');
+    if (!logs || !logs.length) {
+      container.innerHTML = '<div class="loading">No activity yet.</div>';
+      return;
+    }
+    
+    container.innerHTML = logs.slice(0, 20).map(log => `
+      <div class="log-entry">
+        <span class="log-badge" style="background: ${getBadgeColor(log.action)}; color: white;">${log.action}</span>
+        <strong>${escapeHtml(log.admin_name)}</strong><br>
+        <small>${escapeHtml(log.details)}</small><br>
+        <small style="color: var(--muted);">${new Date(log.performed_at).toLocaleString()}</small>
+      </div>
+    `).join('');
+  }
+  
+  function getBadgeColor(action) {
+    switch(action) {
+      case 'ADD': return '#1a7a4a';
+      case 'DELETE': return '#b91c1c';
+      case 'UPDATE': return '#92610a';
+      case 'LOGIN': return '#1e4a8a';
+      default: return '#6b7a6b';
+    }
+  }
+  
+  // Helper functions
   function doLogin() {
     const u = document.getElementById('username').value.trim();
     const p = document.getElementById('password').value;
-    if (!isConnected) { showError('Not connected to server.'); return; }
-    if (!u || !p)     { showError('Enter username and password.'); return; }
+    if (!u || !p) { showError('Enter username and password.'); return; }
     document.getElementById('login-error').style.display = 'none';
     socket.send(JSON.stringify({ action: 'adminLogin', username: u, password: p }));
   }
-
+  
   function doLogout() {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminName');
     sessionToken = null;
-    document.getElementById('dashboard').style.display    = 'none';
+    document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
   }
-
-  function showDashboard(name) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('dashboard').style.display    = 'block';
-    document.getElementById('admin-name-display').textContent = name || 'Admin';
-  }
-
+  
   function showError(msg) {
     const el = document.getElementById('login-error');
-    el.textContent   = msg;
+    el.textContent = msg;
     el.style.display = 'block';
   }
-
+  
+  function showToast(msg, type) {
+    const toast = document.getElementById('message-toast');
+    toast.style.backgroundColor = type === 'error' ? '#b91c1c' : '#17b890';
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 3000);
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+  
+  // Auto-login if token exists
+  if (sessionToken && currentAdminName) {
+    document.getElementById('admin-name-display').textContent = currentAdminName;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    initAdminMap();
+    refreshAllData();
+  }
+  
   document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' &&
-        document.getElementById('login-screen').style.display !== 'none') doLogin();
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
   });
-
-  // ── Render ──
-  function renderStats(s) {
-    if (!s) return;
-    set('stat-buildings',     s.totalBuildings);
-    set('stat-rooms',         s.totalRooms);
-    set('stat-norooms',       s.buildingsNoRooms);
-    set('stat-announcements', s.totalAnnouncements);
-    set('stat-actions',       s.actionsToday);
-    set('stat-last-who',      s.lastActionBy || '—');
-    set('stat-last',          s.lastAction   || '—');
-    document.querySelectorAll('.stat-value').forEach(el => {
-      el.classList.add('pop');
-      setTimeout(() => el.classList.remove('pop'), 500);
-    });
-  }
-
-  function set(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val ?? '—';
-  }
-
-  function renderLog(logs) {
-    const el = document.getElementById('activity-log');
-    if (!logs || !logs.length) {
-      el.innerHTML = '<div class="empty">No activity yet.</div>'; return;
-    }
-    el.innerHTML = logs.map(l => `
-      <div class="log-row">
-        <span class="badge badge-${l.action}">${l.action}</span>
-        <div>
-          <div class="log-detail">${l.details}</div>
-          <div class="log-meta">
-            <strong>${l.admin_name}</strong>
-            &nbsp;·&nbsp; ${fmt(l.performed_at)}
-          </div>
-        </div>
-      </div>`).join('');
-  }
-
-  function renderBuildings(buildings) {
-    const el = document.getElementById('buildings-list');
-    set('bcount-label', buildings ? `${buildings.length} total` : '');
-    if (!buildings || !buildings.length) {
-      el.innerHTML = '<div class="empty">No buildings yet.</div>'; return;
-    }
-    el.innerHTML = buildings.map(b => `
-      <div class="brow">
-        <div>
-          <div class="brow-name">${b.name}</div>
-          <div class="brow-date">Added ${fmt(b.date_created)}</div>
-        </div>
-        <span class="room-pill ${b.room_count == 0 ? 'zero' : ''}">
-          ${b.room_count} room${b.room_count != 1 ? 's' : ''}
-        </span>
-      </div>`).join('');
-  }
-
-  function flashLogHead() {
-    const el = document.getElementById('log-head');
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 700);
-  }
-
-  function fmt(dt) {
-    if (!dt) return '—';
-    return new Date(dt).toLocaleString('en-PH', {
-      month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  }
 </script>
-
 </body>
 </html>

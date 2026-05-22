@@ -1,0 +1,26 @@
+# Environment variables
+.env
+
+# Docker volumes
+db_data/
+mysql_data/
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Backup files
+*.sql
+*.bak
+*.tmp
