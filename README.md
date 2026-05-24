@@ -107,14 +107,6 @@ node webSocketServer.js
 
 ---
 
-## Default Admin Credentials
-
-| Field | Value |
-|---|---|
-| Username | `admin` |
-| Password | `admin123` |
-
-> Change the password after first login.
 
 ---
 
