@@ -388,6 +388,7 @@ wss.on('connection', (ws) => {
     if (data.action === 'adminLogin') {
       const { username, password } = data;
       try {
+        // Password is hashed using SHA-256 before DB comparison (secure login)
         const hash = crypto.createHash('sha256').update(password).digest('hex');
         const [rows] = await pool.query(
           'SELECT * FROM admin_users WHERE username = ? AND password_hash = ?',
